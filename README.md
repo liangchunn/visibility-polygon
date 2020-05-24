@@ -1,15 +1,28 @@
-# visibility-polygon
+# visibility-polygon ![](https://github.com/liangchunn/visibility-polygon/workflows/CI/badge.svg) [![npm](https://img.shields.io/npm/v/visibility-polygon.svg)](https://www.npmjs.com/package/visibility-polygon) [![bundle size](https://badgen.net/bundlephobia/min/visibility-polygon)](https://bundlephobia.com/result?p=visibility-polygon)
 
 A library used to construct a visibility polygon for a set of line segments.
 
 ## Demo
+
 Original demo by Byron Knoll: http://www.byronknoll.com/visibility.html
 
 ## Performance
 
 The time complexity of this implementation is `O(n log n)` (where `n` is the total number of line segments). This is the optimal time complexity for this problem.
 
-## Example Usage
+## Quick Start
+
+### Installing
+
+```sh
+# npm
+npm install --save visibility-polygon
+
+# yarn
+yarn add visibility-polygon
+```
+
+### Example Usage
 
 ```ts
 import {
