@@ -1,6 +1,6 @@
 {
   "name": "visibility-polygon",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "author": "Liang Chun Wong",
   "description": "A library used to construct a visibility polygon for a set of line segments",
   "repository": {
