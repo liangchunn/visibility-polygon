@@ -3,10 +3,12 @@
  * This version of the library adds TypeScript support and re-implements it in an ESM module by Liang Chun Wong (@lwong)
  */
 
-export type Position = [number, number];
-export type Segments = Position[][];
-export type Points = [number, number, number];
-export type Polygon = Position[];
+export type Vector2D = [number, number];
+export type Segments = Vector2D[][];
+export type Angle = number;
+// Representation of a Vector2D with an additional Angle component
+export type Points = [number, number, Angle];
+export type Polygon = Vector2D[];
 
 /**
  * Computes a visibility polygon. O(N log N) time complexity (where N is the number of line segments).
@@ -14,7 +16,7 @@ export type Polygon = Position[];
  * @param segments A list of line segments. Each line segment should be a list of two points. Each point should be a list of two coordinates. Line segments can not intersect each other. Overlapping vertices are OK, but it is not OK if a vertex is touching the middle of a line segment. Use the "breakIntersections" function to fix intersecting line segments.
  * @returns The visibility polygon (in clockwise vertex order).
  */
-export function compute(position: Position, segments: Segments) {
+export function compute(position: Vector2D, segments: Segments) {
   const bounded: Segments = [];
   let minX = position[0];
   let minY = position[1];
@@ -52,12 +54,12 @@ export function compute(position: Position, segments: Segments) {
     [minX, maxY],
     [minX, minY],
   ]);
-  let polygon: Position[] = [];
+  let polygon: Vector2D[] = [];
   let sorted = sortPoints(position, bounded);
   let map = new Array(bounded.length);
   for (let i = 0; i < map.length; ++i) map[i] = -1;
   let heap: number[] = [];
-  let start: Position = [position[0] + 1, position[1]];
+  let start: Vector2D = [position[0] + 1, position[1]];
   for (let i = 0; i < bounded.length; ++i) {
     let a1 = angle(bounded[i][0], position);
     let a2 = angle(bounded[i][1], position);
@@ -133,13 +135,13 @@ export function compute(position: Position, segments: Segments) {
  * @returns The visibility polygon within the viewport (in clockwise vertex order).
  */
 export function computeViewport(
-  position: Position,
+  position: Vector2D,
   segments: Segments,
-  viewportMinCorner: Position,
-  viewportMaxCorner: Position
-): Position[] {
-  let brokenSegments: Position[][] = [];
-  let viewport: Position[] = [
+  viewportMinCorner: Vector2D,
+  viewportMaxCorner: Vector2D
+): Vector2D[] {
+  let brokenSegments: Vector2D[][] = [];
+  let viewport: Vector2D[] = [
     [viewportMinCorner[0], viewportMinCorner[1]],
     [viewportMaxCorner[0], viewportMinCorner[1]],
     [viewportMaxCorner[0], viewportMaxCorner[1]],
@@ -197,7 +199,7 @@ export function computeViewport(
         intersections.push(intersect);
       }
     }
-    let start: Position = [segments[i][0][0], segments[i][0][1]];
+    let start: Vector2D = [segments[i][0][0], segments[i][0][1]];
     while (intersections.length > 0) {
       let endIndex = 0;
       let endDis = distance(start, intersections[0]);
@@ -252,9 +254,9 @@ export function computeViewport(
 }
 
 export function inViewport(
-  position: Position,
-  viewportMinCorner: Position,
-  viewportMaxCorner: Position
+  position: Vector2D,
+  viewportMinCorner: Vector2D,
+  viewportMaxCorner: Vector2D
 ): boolean {
   if (position[0] < viewportMinCorner[0] - epsilon()) return false;
   if (position[1] < viewportMinCorner[1] - epsilon()) return false;
@@ -269,13 +271,13 @@ export function inViewport(
  * @param polygon The polygon to check: a list of points. The polygon can be specified in either clockwise or counterclockwise vertex order.
  * @returns True if "position" is within the polygon.
  */
-export function inPolygon(position: Position, polygon: Position[]): boolean {
+export function inPolygon(position: Vector2D, polygon: Vector2D[]): boolean {
   let val = polygon[0][0];
   for (let i = 0; i < polygon.length; ++i) {
     val = Math.min(polygon[i][0], val);
     val = Math.min(polygon[i][1], val);
   }
-  let edge: Position = [val - 1, val - 1];
+  let edge: Vector2D = [val - 1, val - 1];
   let parity = 0;
   for (let i = 0; i < polygon.length; ++i) {
     let j = i + 1;
@@ -364,7 +366,7 @@ export function breakIntersections(segments: Segments): Segments {
         intersections.push(intersect);
       }
     }
-    let start: Position = [segments[i][0][0], segments[i][0][1]];
+    let start: Vector2D = [segments[i][0][0], segments[i][0][1]];
     while (intersections.length > 0) {
       let endIndex = 0;
       let endDis = distance(start, intersections[0]);
@@ -392,7 +394,7 @@ function epsilon(): number {
   return 0.0000001;
 }
 
-function equal(a: Position | number[], b: Position | number[]): boolean {
+function equal(a: Vector2D | number[], b: Vector2D | number[]): boolean {
   if (Math.abs(a[0] - b[0]) < epsilon() && Math.abs(a[1] - b[1]) < epsilon())
     return true;
   return false;
@@ -401,9 +403,9 @@ function equal(a: Position | number[], b: Position | number[]): boolean {
 function remove(
   index: number,
   heap: number[],
-  position: Position,
+  position: Vector2D,
   segments: Segments,
-  destination: Position,
+  destination: Vector2D,
   map: Record<number, number>
 ): void {
   map[heap[index]] = -1;
@@ -467,9 +469,9 @@ function remove(
 function insert(
   index: number,
   heap: number[],
-  position: Position,
+  position: Vector2D,
   segments: Segments,
-  destination: Position,
+  destination: Vector2D,
   map: Record<number, number>
 ): void {
   let intersect = intersectLines(
@@ -499,9 +501,9 @@ function insert(
 function lessThan(
   index1: number,
   index2: number,
-  position: Position,
+  position: Vector2D,
   segments: Segments,
-  destination: Position
+  destination: Vector2D
 ): boolean {
   let inter1 = intersectLines(
     segments[index1][0],
@@ -516,16 +518,16 @@ function lessThan(
     destination
   );
   if (!equal(inter1, inter2)) {
-    let d1 = distance(inter1 as Position, position);
-    let d2 = distance(inter2 as Position, position);
+    let d1 = distance(inter1 as Vector2D, position);
+    let d2 = distance(inter2 as Vector2D, position);
     return d1 < d2;
   }
   let end1 = 0;
   if (equal(inter1, segments[index1][0])) end1 = 1;
   let end2 = 0;
   if (equal(inter2, segments[index2][0])) end2 = 1;
-  let a1 = angle2(segments[index1][end1], inter1 as Position, position);
-  let a2 = angle2(segments[index2][end2], inter2 as Position, position);
+  let a1 = angle2(segments[index1][end1], inter1 as Vector2D, position);
+  let a2 = angle2(segments[index2][end2], inter2 as Vector2D, position);
   if (a1 < 180) {
     if (a2 > 180) return true;
     return a2 < a1;
@@ -541,7 +543,7 @@ function child(index: number): number {
   return 2 * index + 1;
 }
 
-function angle2(a: Position, b: Position, c: Position): number {
+function angle2(a: Vector2D, b: Vector2D, c: Vector2D): number {
   let a1 = angle(a, b);
   let a2 = angle(b, c);
   let a3 = a1 - a2;
@@ -550,7 +552,7 @@ function angle2(a: Position, b: Position, c: Position): number {
   return a3;
 }
 
-function sortPoints(position: Position, segments: Segments): Points[] {
+function sortPoints(position: Vector2D, segments: Segments): Points[] {
   let points: Points[] = new Array(segments.length * 2);
   for (let i = 0; i < segments.length; ++i) {
     for (let j = 0; j < 2; ++j) {
@@ -564,16 +566,16 @@ function sortPoints(position: Position, segments: Segments): Points[] {
   return points;
 }
 
-function angle(a: Position, b: Position): number {
+function angle(a: Vector2D, b: Vector2D): number {
   return (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
 }
 
 function intersectLines(
-  a1: Position,
-  a2: Position,
-  b1: Position,
-  b2: Position
-): Position {
+  a1: Vector2D,
+  a2: Vector2D,
+  b1: Vector2D,
+  b2: Vector2D
+): Vector2D {
   let dbx = b2[0] - b1[0];
   let dby = b2[1] - b1[1];
   let dax = a2[0] - a1[0];
@@ -587,7 +589,7 @@ function intersectLines(
   return [] as any;
 }
 
-function distance(a: Position | number[], b: Position | number[]): number {
+function distance(a: Vector2D | number[], b: Vector2D | number[]): number {
   let dx = a[0] - b[0];
   let dy = a[1] - b[1];
   return dx * dx + dy * dy;
